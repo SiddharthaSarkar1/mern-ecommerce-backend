@@ -18,7 +18,7 @@ exports.fetchAllProducts = async (req, res) => {
   // pagination = {_page:1,_limit=10}
   let condition = {};
   if (!req.query.admin) {
-    condition.deleted = { $ne: true };
+    condition.deleted = { $ne: true }; //deteled $ne (not equals to) true
   }
   // we are creating two variables query is for executing the query and totalProductsQuery is to calculate the totalcount
   let query = Product.find(condition);
@@ -69,7 +69,7 @@ exports.fetchProductById = async (req, res) => {
   } catch (err) {
     res.status(400).json(err);
   }
-};  
+};
 
 exports.updateProduct = async (req, res) => {
   const { id } = req.params;
