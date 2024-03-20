@@ -11,6 +11,7 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const JwtStrategy = require("passport-jwt").Strategy;
 const ExtractJwt = require("passport-jwt").ExtractJwt;
+const cookieParser = require("cookie-parser");
 
 const productsRouter = require("./routes/Products");
 const categoriesRouter = require("./routes/Categoreis");
@@ -20,7 +21,7 @@ const authRouter = require("./routes/Auth");
 const cartRouter = require("./routes/Cart");
 const ordersRouter = require("./routes/Order");
 const { User } = require("./model/User");
-const { isAuth, sanitizeUser } = require("./services/common");
+const { isAuth, sanitizeUser, cookieExtractor } = require("./services/common");
 
 const PORT = 5050;
 
@@ -28,10 +29,13 @@ const SECRET_KEY = "SECRET_KEY";
 // JWT options
 
 const opts = {};
-opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
+opts.jwtFromRequest = cookieExtractor;
 opts.secretOrKey = SECRET_KEY; // TODO: should not be in code;
 
 //Middlewares
+server.use(express.static("build"));
+server.use(cookieParser());
+
 server.use(
   session({
     secret: "keyboard cat",
@@ -57,9 +61,11 @@ server.use("/orders", isAuth(), ordersRouter.router);
 // Passport Strategies
 passport.use(
   "local",
-  new LocalStrategy(
-    {usernameField: 'email'},
-    async function (email, password, done) {
+  new LocalStrategy({ usernameField: "email" }, async function (
+    email,
+    password,
+    done
+  ) {
     // by default passport uses username
     try {
       const user = await User.findOne({ email: email });
@@ -78,7 +84,7 @@ passport.use(
             return done(null, false, { message: "invalid credentials" });
           } else {
             const token = jwt.sign(sanitizeUser(user), SECRET_KEY);
-            return done(null, token);
+            return done(null, { id: user.id, role: user.role });
           }
         }
       );

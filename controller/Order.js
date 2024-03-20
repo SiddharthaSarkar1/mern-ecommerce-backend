@@ -1,9 +1,9 @@
 const { Order } = require("../model/Order");
 
 exports.fetchOrdersByUser = async (req, res) => {
-  const { userId } = req.params;
+  const { id } = req.user;
   try {
-    const orders = await Order.find({ user: userId });
+    const orders = await Order.find({ user: id });
 
     res.status(200).json(orders);
   } catch (err) {
@@ -46,10 +46,9 @@ exports.updateOrder = async (req, res) => {
 exports.fetchAllOrders = async (req, res) => {
   // sort = {_sort:"price",_order="desc"}
   // pagination = {_page:1,_limit=10}
-  let query = Order.find({deleted:{$ne:true}});
-  let totalOrdersQuery = Order.find({deleted:{$ne:true}});
+  let query = Order.find({ deleted: { $ne: true } });
+  let totalOrdersQuery = Order.find({ deleted: { $ne: true } });
 
-  
   if (req.query._sort && req.query._order) {
     query = query.sort({ [req.query._sort]: req.query._order });
   }
@@ -65,7 +64,7 @@ exports.fetchAllOrders = async (req, res) => {
 
   try {
     const docs = await query.exec();
-    res.set('X-Total-Count', totalDocs);
+    res.set("X-Total-Count", totalDocs);
     res.status(200).json(docs);
   } catch (err) {
     res.status(400).json(err);
