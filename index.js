@@ -23,14 +23,11 @@ const ordersRouter = require("./routes/Order");
 const { User } = require("./model/User");
 const { isAuth, sanitizeUser, cookieExtractor } = require("./services/common");
 
-const PORT = 5050;
-
-const SECRET_KEY = "SECRET_KEY";
 // JWT options
 
 const opts = {};
 opts.jwtFromRequest = cookieExtractor;
-opts.secretOrKey = SECRET_KEY; // TODO: should not be in code;
+opts.secretOrKey = process.env.JWT_SECRET_KEY; // TODO: should not be in code;
 
 //Middlewares
 server.use(express.static("build"));
@@ -83,7 +80,7 @@ passport.use(
           if (!crypto.timingSafeEqual(user.password, hashedPassword)) {
             return done(null, false, { message: "invalid credentials" });
           } else {
-            const token = jwt.sign(sanitizeUser(user), SECRET_KEY);
+            const token = jwt.sign(sanitizeUser(user), process.env.JWT_SECRET_KEY);
             return done(null, { id: user.id, role: user.role });
           }
         }
@@ -130,6 +127,40 @@ passport.deserializeUser(function (user, cb) {
   });
 });
 
+// Payments Integration codes >>>>>>
+
+// This is your test secret API key.
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+server.post("/create-payment-intent", async (req, res) => {
+  const { totalAmount } = req.body;
+
+  // Create a PaymentIntent with the order amount and currency
+  const paymentIntent = await stripe.paymentIntents.create({
+    //sid - 22/03/2024: This description and shipping is added as dummy data to create payment without error
+    description: "Software development services",
+    shipping: {
+      name: "Jenny Rosen",
+      address: {
+        line1: "510 Townsend St",
+        postal_code: "98140",
+        city: "San Francisco",
+        state: "CA",
+        country: "US",
+      },
+    },
+    amount: totalAmount * 100, // for decimal compensation
+    currency: "inr",
+    automatic_payment_methods: {
+      enabled: true,
+    },
+  });
+
+  res.send({
+    clientSecret: paymentIntent.client_secret,
+  });
+});
+
 // MongoDB connection
 main();
 
@@ -150,6 +181,6 @@ server.get("/", (req, res) => {
 
 // server.post("/products", createProduct);
 
-server.listen(PORT, () => {
-  `Server is running on port: ${PORT}`;
+server.listen(process.env.PORT, () => {
+  `Server is running on port: ${process.env.PORT}`;
 });
