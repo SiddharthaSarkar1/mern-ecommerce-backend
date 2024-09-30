@@ -22,7 +22,8 @@ const cartRouter = require("./routes/Cart");
 const ordersRouter = require("./routes/Order");
 const { User } = require("./model/User");
 const { isAuth, sanitizeUser, cookieExtractor } = require("./services/common");
-const path = require('path');
+const path = require("path");
+const  connectMongoDB  = require("./db/connectMongoDB");
 
 // JWT options
 
@@ -47,7 +48,7 @@ server.use(
     exposedHeaders: ["X-Total-Count"],
   })
 );
-server.use(express.json()); //to parse req.body
+server.use(express.json({ limit: "5mb" })); //to parse req.body
 server.use("/products", isAuth(), productsRouter.router);
 server.use("/categories", isAuth(), categoriesRouter.router);
 server.use("/brands", isAuth(), brandsRouter.router);
@@ -57,8 +58,8 @@ server.use("/cart", isAuth(), cartRouter.router);
 server.use("/orders", isAuth(), ordersRouter.router);
 
 // this line we add to make react router work in case of other routes doesnt match
-server.get('*', (req, res) =>
-  res.sendFile(path.resolve('build', 'index.html'))
+server.get("*", (req, res) =>
+  res.sendFile(path.resolve("build", "index.html"))
 );
 
 // Passport Strategies
@@ -86,9 +87,12 @@ passport.use(
           if (!crypto.timingSafeEqual(user.password, hashedPassword)) {
             return done(null, false, { message: "invalid credentials" });
           } else {
-            const token = jwt.sign(sanitizeUser(user), process.env.JWT_SECRET_KEY);
+            const token = jwt.sign(
+              sanitizeUser(user),
+              process.env.JWT_SECRET_KEY
+            );
             // console.log("token is :", {token})
-            return done(null, { id: user.id, role: user.role, token  });
+            return done(null, { id: user.id, role: user.role, token });
           }
         }
       );
@@ -169,18 +173,7 @@ server.post("/create-payment-intent", async (req, res) => {
 });
 
 // MongoDB connection
-main();
-
-async function main() {
-  try {
-    await mongoose.connect(process.env.MONGODB_URL, {
-      dbName: "sidd_ecommerce",
-    });
-    console.log("database connected");
-  } catch (error) {
-    console.log(error);
-  }
-}
+connectMongoDB();
 
 server.get("/", (req, res) => {
   res.json({ status: "Success" });
